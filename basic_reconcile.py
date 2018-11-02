@@ -9,7 +9,7 @@ import datetime
 
 """ This is a god awful mess that needs to be put into functions or objects for clarity"""
 
-text_match = '\[(\d+/\d+/\d+.+)]\s(Warning: Conflicts found reconciling version)\s([SDE]+\.\w+)\.'
+text_match = r'\[(\d+/\d+/\d+.+)]\s(Warning.+)\s([SDE]+\.\w+)\.'
 
 
 def main():
@@ -32,30 +32,30 @@ def main():
             version_default = ['sde.DEFAULT']
             temp_report = StringIO.StringIO()
 
+            if len(versions_children) > 0:
+                arcpy.ReconcileVersions_management(file,
+                                                   "ALL_VERSIONS",
+                                                   version_QA[0],
+                                                   versions_children,
+                                                   "LOCK_ACQUIRED",
+                                                   "ABORT_CONFLICTS",
+                                                   "BY_ATTRIBUTE",
+                                                   "FAVOR_TARGET_VERSION",
+                                                   "POST",
+                                                   "KEEP_VERSION",
+                                                   r"C:\Users\{}\Desktop\reconcile_folder\{}_{}.txt".format(user_name,file,version_QA[0]))
 
-            arcpy.ReconcileVersions_management(file,
-                                               "ALL_VERSIONS",
-                                               version_QA[0],
-                                               versions_children,
-                                               "LOCK_ACQUIRED",
-                                               "ABORT_CONFLICTS",
-                                               "BY_ATTRIBUTE",
-                                               "FAVOR_TARGET_VERSION",
-                                               "POST",
-                                               "KEEP_VERSION",
-                                               r"C:\Users\{}\Desktop\reconcile_folder\{}_{}.txt".format(user_name,file,version_QA[0]))
-
-            with open(r"C:\Users\{}\Desktop\reconcile_folder\{}_{}.txt".format(user_name,file,version_QA[0]),'r') as in_file:
-                line = in_file.readline()
-                while line:
-                    match = re.search(text_match,line)
-                    if match:
-                        reconcile_errors = True
-                        temp_report.write(file + "\n")
-                        temp_report.write("\t" + line + "\n")
+                with open(r"C:\Users\{}\Desktop\reconcile_folder\{}_{}.txt".format(user_name,file,version_QA[0]),'r') as in_file:
                     line = in_file.readline()
+                    while line:
+                        match = re.search(text_match,line)
+                        if match:
+                            reconcile_errors = True
+                            temp_report.write(file + "\n")
+                            temp_report.write("\t" + line + "\n")
+                        line = in_file.readline()
 
-            if reconcile_errors == False:
+            if reconcile_errors == False and len(version_QA) > 0:
                 arcpy.ReconcileVersions_management(file,
                                                    "ALL_VERSIONS",
                                                    version_default[0],
@@ -77,7 +77,8 @@ def main():
                             temp_report.write(file + "\n")
                             temp_report.write("\t" + line + "\n")
                         line = in_file.readline()
-
+            else:
+                temp_report.write(file + " did not reconcile either because of errors (listed above) or No QA version found")
         final_report = temp_report.getvalue()
 
         if len(final_report) > 0:
