@@ -15,6 +15,8 @@ def main():
                            '"CITYHALL\\MORIO".addr_101618',
                            '"CITYHALL\\MORIO".BLDG_101618',
                            '"CITYHALL\\MORIO".DAZ',
+                           '"CITYHALL\\MORIO".mow_contractor_082918',
+                           'SDE.mowing_091718',
                            '"CITYHALL\\TGRAHAM".GRAHAM_SANITARY',
                            '"CITYHALL\\TGRAHAM".TGRAHAM_TELECOM',
                            '"CITYHALL\\TGRAHAM".T_GRAHAM_STORM',
