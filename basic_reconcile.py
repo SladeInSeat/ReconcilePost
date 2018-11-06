@@ -17,20 +17,43 @@ def main():
         arcpy.env.overwriteOutput = True
         arcpy.env.workspace,user_name = set_workspace()
         db_exclude = ['SDE@WebAppDev_CLUSTER.sde']
-        version_exclude = list()
-        conn_files = [file for file in arcpy.ListFiles("SDE@*") if file in db_exclude]
+        version_exclude = ['"CITYHALL\\CDGLASS".cglass',
+                           '"CITYHALL\\MORIO".addr_101618',
+                           '"CITYHALL\\MORIO".BLDG_101618',
+                           '"CITYHALL\\MORIO".DAZ',
+                           '"CITYHALL\\MORIO".mow_contractor_082918',
+                           '"CITYHALL\MORIO".WTP_102918',
+                           'SDE.mowing_091718',
+                           '"CITYHALL\\TGRAHAM".GRAHAM_SANITARY',
+                           '"CITYHALL\\TGRAHAM".TGRAHAM_TELECOM',
+                           '"CITYHALL\\TGRAHAM".T_GRAHAM_STORM',
+                           '"CITYHALL\\TGRAHAM".TGRAHAM_WATER',
+                           '"CITYHALL\\ACASTILLO".0andFlorida',
+                           '"CITYHALL\\SEDGE".Edge_Sanitary',
+                           '"CITYHALL\\SEDGE".Edge_Stormwater',
+                           '"CITYHALL\\SEDGE".Edge_Fiber',
+                           '"CITYHALL\\SEDGE".Edge_Water',
+                           'CEICHENMULLER.Ceichenmuller',
+                           'SDE.Editor_WoodlawnCemetery_App']
+        conn_files = [file for file in arcpy.ListFiles("SDE@*") if file not in db_exclude]
+        temp_report = StringIO.StringIO()
+
         print (conn_files)
 
         for file in conn_files:
+            print (file)
             arcpy.AcceptConnections(file, False)
             arcpy.DisconnectUser(file,"ALL")
 
             db_string = r"Database Connections\{}".format(file)
             reconcile_errors = False
-            versions_children = [version.name.encode('ascii') for version in arcpy.da.ListVersions(db_string) if version.parentVersionName not in ['sde.DEFAULT',None]]
-            version_QA = [version.name.encode('ascii') for version in arcpy.da.ListVersions(db_string) if version.parentVersionName == 'sde.DEFAULT' and version.name[-3:]=='_QA']
+            versions_children = [version.name.encode('ascii') for version in arcpy.da.ListVersions(db_string)
+                                 if version.parentVersionName not in ['sde.DEFAULT',None]
+                                 and version.name not in version_exclude]
+            version_QA = [version.name.encode('ascii') for version in arcpy.da.ListVersions(db_string)
+                          if version.parentVersionName == 'sde.DEFAULT' and version.name[-3:]=='_QA']
             version_default = ['sde.DEFAULT']
-            temp_report = StringIO.StringIO()
+
 
             if len(versions_children) > 0:
                 arcpy.ReconcileVersions_management(file,
@@ -51,9 +74,11 @@ def main():
                         match = re.search(text_match,line)
                         if match:
                             reconcile_errors = True
-                            temp_report.write(file + "\n")
+                            temp_report.write("\n" + file + "\n")
                             temp_report.write("\t" + line + "\n")
                         line = in_file.readline()
+            else:
+                print ('len of versions_children of {} was < 0'.format(file))
 
             if reconcile_errors == False and len(version_QA) > 0:
                 arcpy.ReconcileVersions_management(file,
@@ -74,15 +99,17 @@ def main():
                     while line:
                         match = re.search(text_match, line)
                         if match:
-                            temp_report.write(file + "\n")
+                            temp_report.write("\n" + file + "\n")
                             temp_report.write("\t" + line + "\n")
                         line = in_file.readline()
             else:
-                temp_report.write(file + " did not reconcile either because of errors (listed above) or No QA version found")
+                temp_report.write(file + " \ndid not reconcile either because of errors (listed above)"
+                                         " or No QA version found\n\n")
+
         final_report = temp_report.getvalue()
 
         if len(final_report) > 0:
-            print ("len is > 0")
+            print ("len of final report is > 0, sending email")
             with open(r"C:\Users\{}\Desktop\finalfolder\finalfolderlog.txt".format(user_name), "a") as outfile:
                 outfile.write(final_report)
 
