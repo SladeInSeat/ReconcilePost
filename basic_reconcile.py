@@ -74,6 +74,7 @@ def main():
         if flagged_versions:
             print (flagged_versions)
             print (len(flagged_versions))
+            sendmail("test sendmail function and rec post","JSSawyer@wpb.org", flagged_versions)
 
     #
     #     for file in conn_files:
@@ -188,12 +189,29 @@ def versionCheck(reconcile, dontreconcile, connectionfiles):
         db_string = r"Database Connections\{}".format(file)
         temp_versions = [version.name.encode('ascii') for version in arcpy.da.ListVersions(db_string)
                         if version.name.encode('ascii') not in static_versions
-                        and ((0 <= (datetime.datetime.now()- version.created).days <= 1)
-                        or ((datetime.datetime.now() - version.created).days > 30))]
+                        and ((datetime.datetime.now() - version.created).days > 30)]
         for version in temp_versions:
             if len(version) > 0:
                 new_versions.append(version)
     return new_versions
+
+def sendmail(subject_param,sendto_param, report_param):
+
+    today = datetime.datetime.now().strftime("%d-%m-%Y")
+    subject = "{} {}".format(subject_param,today)
+    sendto = sendto_param
+    sender = 'scriptmonitorwpb@gmail.com'
+    sender_pw = "Bibby1997"
+    server = 'smtp.gmail.com'
+    report = report_param
+    body_text = "From: {0}\r\nTo: {1}\r\nSubject: {2}\r\n" \
+                "\n{3}".format(sender, sendto, subject, report)
+
+    gmail = smtplib.SMTP(server, 587)
+    gmail.starttls()
+    gmail.login(sender, sender_pw)
+    gmail.sendmail(sender, sendto, body_text)
+    gmail.quit()
 
 
 main()
