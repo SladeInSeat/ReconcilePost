@@ -9,6 +9,7 @@ import datetime
 
 """ This is a god awful mess that needs to be put into functions or objects for clarity"""
 
+#   Regular expression match used on logs from reconcile/post tool from ESRI, match == failure to reconcile
 text_match = r'\[(\d+/\d+/\d+.+)]\s(Warning.+)\s([SDE]+\.\w+)\.'
 
 
@@ -17,7 +18,7 @@ def main():
         arcpy.env.overwriteOutput = True
         arcpy.env.workspace,user_name = set_workspace()
         db_exclude = ['SDE@WebAppDev_CLUSTER.sde']
-        version_exclude = ['"CITYHALL\\CDGLASS".cglass',
+        version_exclude = ['"CITYHALL\\CDGLASS".cglass',    #   Expliciit list of versions to not reconclie
                            '"CITYHALL\\MORIO".addr_101618',
                            '"CITYHALL\\MORIO".BLDG_101618',
                            '"CITYHALL\\MORIO".DAZ',
@@ -35,7 +36,7 @@ def main():
                            '"CITYHALL\\SEDGE".Edge_Water',
                            'CEICHENMULLER.Ceichenmuller',
                            'SDE.Editor_WoodlawnCemetery_App']
-        static_reconcilelist = ['GISADMIN.Address_QA',
+        static_reconcilelist = ['GISADMIN.Address_QA',  #   explicit list of versions to reconcile
                                 'GISADMIN.CIP_QA',
                                 'GISADMIN.Citizen_QA',
                                 'GISADMIN.Editor_BuildingElevation',
@@ -69,10 +70,11 @@ def main():
         conn_files = [file for file in arcpy.ListFiles("SDE@*") if file not in db_exclude]
         temp_report = StringIO.StringIO()
 
-        print (conn_files)
-        flagged_versions = (versionCheck(static_reconcilelist,version_exclude,conn_files))
+        flagged_versions = (versionCheck(static_reconcilelist,version_exclude,conn_files)) # checks for versions that might need deleting
+
         if flagged_versions:
-            sendMail("Versions need attention", ["JSSawyer@wpb.org", "JJudge@wpb.org"], flagged_versions)
+            sendMail("Versions need attention", ["JSSawyer@wpb.org", "JJudge@wpb.org"], "Versions that are older than" 
+                     "30 days and not listed as permanent versions in script", flagged_versions)
 
 
         for file in conn_files:
@@ -148,7 +150,7 @@ def main():
             with open(r"C:\Users\{}\Desktop\finalfolder\finalfolderlog.txt".format(user_name), "a") as outfile:
                 outfile.write(final_report)
 
-            sendMail('Reconcile Post report', ["JSSawyer@wpb.org", "JJudge@wpb.org"], final_report)
+            sendMail('Reconcile Post report', ["JSSawyer@wpb.org", "JJudge@wpb.org"], "Reconcile Post report", final_report)
 
             # today = datetime.datetime.now().strftime("%d-%m-%Y")
             # subject = 'Reconcile Post report ' + today
@@ -172,7 +174,7 @@ def main():
         print (E,E.args,sep="\n")
     finally:
         print ("finally")
-        # temp_report.close()
+        temp_report.close()
         for file in conn_files:
             arcpy.AcceptConnections(file, True)
 
@@ -195,18 +197,16 @@ def versionCheck(reconcile, dontreconcile, connectionfiles):
                 new_versions.append(version)
     return new_versions
 
-def sendMail(subject_param, sendto_param, report_param):
+def sendMail(subject_param, sendto_param, body_text_param, report_param):
 
     today = datetime.datetime.now().strftime("%d-%m-%Y")
     subject = "{} {}".format(subject_param,today)
-    sendto = sendto_param
     sender = 'scriptmonitorwpb@gmail.com'
-    sender_pw = "Bibby1997"
+    sender_pw = 'Bibby1997'
     server = 'smtp.gmail.com'
-    report = report_param
     body_text = "From: {0}\r\nTo: {1}\r\nSubject: {2}\r\n" \
-                "\nVersions that are older than 30 days and not listed as permanent versions in script\n\t{3}"\
-                .format(sender, sendto, subject, report)
+                "\n{3}\n\t{4}"\
+                .format(sender, sendto_param, subject, body_text_param, report_param)
 
     gmail = smtplib.SMTP(server, 587)
     gmail.starttls()
