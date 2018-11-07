@@ -70,7 +70,11 @@ def main():
         temp_report = StringIO.StringIO()
 
         print (conn_files)
-        print (versionCheck(static_reconcilelist,version_exclude,conn_files))
+        flagged_versions = (versionCheck(static_reconcilelist,version_exclude,conn_files))
+        if flagged_versions:
+            print (flagged_versions)
+            print (len(flagged_versions))
+
     #
     #     for file in conn_files:
     #         print (file)
@@ -164,7 +168,7 @@ def main():
     #
     #
     except Exception as E:
-        print (E)
+        print (E,E.args,sep="\n")
     finally:
         print ("finally")
         # temp_report.close()
@@ -184,8 +188,8 @@ def versionCheck(reconcile, dontreconcile, connectionfiles):
         db_string = r"Database Connections\{}".format(file)
         temp_versions = [version.name.encode('ascii') for version in arcpy.da.ListVersions(db_string)
                         if version.name.encode('ascii') not in static_versions
-                        and (((datetime.datetime.now()) - version.created).days == 0
-                        or ((datetime.datetime.now()) - version.created).days > 10)]
+                        and ((0 <= (datetime.datetime.now()- version.created).days <= 1)
+                        or ((datetime.datetime.now() - version.created).days > 30))]
         for version in temp_versions:
             if len(version) > 0:
                 new_versions.append(version)
