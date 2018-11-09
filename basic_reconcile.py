@@ -5,9 +5,8 @@ import re
 import StringIO
 import smtplib
 import datetime
+import traceback
 
-
-""" This is a god awful mess that needs to be put into functions or objects for clarity"""
 
 #   Regular expression match used on logs from reconcile/post tool from ESRI, match == failure to reconcile
 text_match = r'\[(\d+/\d+/\d+.+)]\s(Warning.+)\s([SDE]+\.\w+)\.'
@@ -67,30 +66,23 @@ def main():
                                 'GISADMIN.Water_QA',
                                 'GISADMIN.Watershed_QA',
                                 'sde.DEFAULT']
-        conn_files = [file for file in arcpy.ListFiles("SDE@*") if file not in db_exclude]
+        conn_files = [file for file in arcpy.ListFiles("SDE@*") if file in db_exclude]
         temp_report = StringIO.StringIO()
 
-        flagged_versions = (versionCheck(static_reconcilelist,version_exclude,conn_files)) # checks for versions that might need deleting
-
-        if flagged_versions:
-            sendMail("Versions need attention", ["JSSawyer@wpb.org", "JJudge@wpb.org"], "Versions that are older than" 
-                     "30 days and not listed as permanent versions in script", flagged_versions)
-
-
         for file in conn_files:
-            print (file)
             arcpy.AcceptConnections(file, False)
             arcpy.DisconnectUser(file,"ALL")
+
 
             db_string = r"Database Connections\{}".format(file)
             reconcile_errors = False
             versions_children = [version.name.encode('ascii') for version in arcpy.da.ListVersions(db_string)
-                                 if version.parentVersionName not in ['sde.DEFAULT',None]
-                                 and version.name not in version_exclude]
+                                 if version.parentVersionName not in ['sde.DEFAULT', None]
+                                 and version.name in static_reconcilelist]
             version_QA = [version.name.encode('ascii') for version in arcpy.da.ListVersions(db_string)
-                          if version.parentVersionName == 'sde.DEFAULT' and version.name[-3:]=='_QA']
+                          if version.parentVersionName == 'sde.DEFAULT'
+                          and version.name[-3:]=='_QA']
             version_default = ['sde.DEFAULT']
-
 
             if len(versions_children) > 0:
                 arcpy.ReconcileVersions_management(file,
@@ -117,7 +109,8 @@ def main():
             else:
                 print ('len of versions_children of {} was < 0'.format(file))
 
-            if reconcile_errors == False and len(version_QA) > 0:
+
+            if reconcile_errors == False and (len(version_QA) > 0):
                 arcpy.ReconcileVersions_management(file,
                                                    "ALL_VERSIONS",
                                                    version_default[0],
@@ -140,40 +133,24 @@ def main():
                             temp_report.write("\t" + line + "\n")
                         line = in_file.readline()
             else:
+                print ('did not reconcile bc errors or no QA')
                 temp_report.write(file + " \ndid not reconcile either because of errors (listed above)"
                                          " or No QA version found\n\n")
 
         final_report = temp_report.getvalue()
 
         if len(final_report) > 0:
-            print ("len of final report is > 0, sending email")
-            with open(r"C:\Users\{}\Desktop\finalfolder\finalfolderlog.txt".format(user_name), "a") as outfile:
+            with open(r"C:\Users\{}\Desktop\finalfolder\finalfolderlog.txt".format(user_name), "w") as outfile:
                 outfile.write(final_report)
 
-            sendMail('Reconcile Post report', ["JSSawyer@wpb.org", "JJudge@wpb.org"], "Reconcile Post report", final_report)
-
-            # today = datetime.datetime.now().strftime("%d-%m-%Y")
-            # subject = 'Reconcile Post report ' + today
-            # sendto = "jssawyer@wpb.org"
-            # sender = 'scriptmonitorwpb@gmail.com'
-            # sender_pw = "Bibby1997"
-            # server = 'smtp.gmail.com'
-            # body_text = "From: {0}\r\nTo: {1}\r\nSubject: {2}\r\n" \
-            #             "\n{3}".format(sender, sendto, subject, final_report)
-            #
-            # gmail = smtplib.SMTP(server, 587)
-            # gmail.starttls()
-            # gmail.login(sender, sender_pw)
-            # gmail.sendmail(sender, sendto, body_text)
-            # gmail.quit()
-
-
-
+            sendMail('Reconcile Post report', "JSSawyer@wpb.org", "Reconcile Post report", final_report)
 
     except Exception as E:
-        print (E,E.args,sep="\n")
+        log = traceback.format_exc()
+        sendMail('Reconcile script failure report ', 'JSSawyer@wpb.org','An error occured, here is'
+                'the log; ',log)
+
     finally:
-        print ("finally")
         temp_report.close()
         for file in conn_files:
             arcpy.AcceptConnections(file, True)
@@ -184,22 +161,9 @@ def set_workspace():
     folder_path = r"C:\Users\{}\AppData\Roaming\ESRI\Desktop10.4\ArcCatalog\\".format(user_name)
     return folder_path,user_name
 
-def versionCheck(reconcile, dontreconcile, connectionfiles):
-    static_versions = reconcile + dontreconcile
-    new_versions = []
-    for file in connectionfiles:
-        db_string = r"Database Connections\{}".format(file)
-        temp_versions = [version.name.encode('ascii') for version in arcpy.da.ListVersions(db_string)
-                        if version.name.encode('ascii') not in static_versions
-                        and ((datetime.datetime.now() - version.created).days > 30)]
-        for version in temp_versions:
-            if len(version) > 0:
-                new_versions.append(version)
-    return new_versions
-
 def sendMail(subject_param, sendto_param, body_text_param, report_param):
 
-    today = datetime.datetime.now().strftime("%d-%m-%Y")
+    today = datetime.datetime.now().strftime("%m-%d-%Y")
     subject = "{} {}".format(subject_param,today)
     sender = 'scriptmonitorwpb@gmail.com'
     sender_pw = 'Bibby1997'
@@ -211,7 +175,7 @@ def sendMail(subject_param, sendto_param, body_text_param, report_param):
     gmail = smtplib.SMTP(server, 587)
     gmail.starttls()
     gmail.login(sender, sender_pw)
-    gmail.sendmail(sender, sendto, body_text)
+    gmail.sendmail(sender, sendto_param, body_text)
     gmail.quit()
 
 
