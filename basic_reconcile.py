@@ -96,7 +96,7 @@ def main():
                                                    "FAVOR_TARGET_VERSION",
                                                    "POST",
                                                    "KEEP_VERSION",
-                                                   r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(user_name,file,version_QA[0]))
+                                                   r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(file,version_QA[0]))
 
                 with open(r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(user_name,file,version_QA[0]),'r') as in_file:
                     line = in_file.readline()
@@ -104,11 +104,11 @@ def main():
                         match = re.search(text_match,line)
                         if match:
                             reconcile_errors = True
-                            temp_report.write("\n" + file + "\n")
-                            temp_report.write("\t" + line + "\n")
+                            temp_report.write("\n{}\n".format(file))
+                            temp_report.write("\t{}\n".format(line))
                         line = in_file.readline()
             else:
-                print ('len of versions_children of {} was < 0'.format(file))
+                print ('not reconciling {}, len of versions_children was 0'.format(file))
 
 
             if reconcile_errors == False and (len(version_QA) > 0):
@@ -122,16 +122,16 @@ def main():
                                                    "FAVOR_TARGET_VERSION",
                                                    "POST",
                                                    "KEEP_VERSION",
-                                                   r"CC:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(user_name,file,version_default[0]))
+                                                   r"CC:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(file,version_default[0]))
 
-                with open(r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(user_name,file,version_default[0]),
+                with open(r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(file,version_default[0]),
                           'r') as in_file:
                     line = in_file.readline()
                     while line:
                         match = re.search(text_match, line)
                         if match:
-                            temp_report.write("\n" + file + "\n")
-                            temp_report.write("\t" + line + "\n")
+                            temp_report.write("\n{}\n".format(file))
+                            temp_report.write("\t{}\n".format(line))
                         line = in_file.readline()
             else:
                 print ('did not reconcile bc errors or no QA')
