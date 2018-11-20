@@ -7,18 +7,18 @@ import smtplib
 import datetime
 import traceback
 
-
 #   Regular expression match used on logs from reconcile/post tool from ESRI, match == failure to reconcile
 text_match = r'\[(\d+/\d+/\d+.+)]\s(Warning.+)\s([SDE]+\.\w+)\.'
 temp_report = StringIO.StringIO()
+
 
 def main():
     try:
         arcpy.env.overwriteOutput = True
         user_name = "GIS_Admin"
         arcpy.env.workspace = r"C:\Users\{}\AppData\Roaming\ESRI\Desktop10.4\ArcCatalog\\".format(user_name)
-        db_exclude = ['SDE@WebAppDev_CLUSTER.sde']
-        version_exclude = ['"CITYHALL\\CDGLASS".cglass',    #   Expliciit list of versions to not reconclie
+        db_exclude = ['SDE@Address_CLUSTER.sde', 'SDE@WebAppDev_CLUSTER.sde']
+        version_exclude = ['"CITYHALL\\CDGLASS".cglass',  # Expliciit list of versions to not reconclie
                            '"CITYHALL\\MORIO".addr_101618',
                            '"CITYHALL\\MORIO".BLDG_101618',
                            '"CITYHALL\\MORIO".DAZ',
@@ -36,7 +36,7 @@ def main():
                            '"CITYHALL\\SEDGE".Edge_Water',
                            'CEICHENMULLER.Ceichenmuller',
                            'SDE.Editor_WoodlawnCemetery_App']
-        static_reconcilelist = ['GISADMIN.Address_QA',  #   explicit list of versions to reconcile
+        static_reconcilelist = ['GISADMIN.Address_QA',  # explicit list of versions to reconcile
                                 'GISADMIN.CIP_QA',
                                 'GISADMIN.Citizen_QA',
                                 'GISADMIN.Editor_BuildingElevation',
@@ -67,23 +67,25 @@ def main():
                                 'GISADMIN.Water_QA',
                                 'GISADMIN.Watershed_QA',
                                 'sde.DEFAULT']
-        conn_files = [file for file in arcpy.ListFiles("SDE@*") if file in db_exclude]
 
+        conn_files = [file for file in arcpy.ListFiles("SDE@*") if file not in db_exclude]
+        print(conn_files)
 
         for file in conn_files:
-            # arcpy.AcceptConnections(file, False)
-            # arcpy.DisconnectUser(file,"ALL")
+            arcpy.AcceptConnections(file, False)
+            arcpy.DisconnectUser(file, "ALL")
 
-
-            db_string = r"Database Connections\{}".format(file)
+            print("file: {}".format(file))
             reconcile_errors = False
-            versions_children = [version.name.encode('ascii') for version in arcpy.da.ListVersions(db_string)
+            versions_children = [version.name.encode('ascii') for version in arcpy.da.ListVersions(file)
                                  if version.parentVersionName not in ['sde.DEFAULT', None]
                                  and version.name in static_reconcilelist]
-            version_QA = [version.name.encode('ascii') for version in arcpy.da.ListVersions(db_string)
+            version_QA = [version.name.encode('ascii') for version in arcpy.da.ListVersions(file)
                           if version.parentVersionName == 'sde.DEFAULT'
-                          and version.name[-3:]=='_QA' and version.name in static_reconcilelist]
+                          and version.name[-3:] == '_QA' and version.name in static_reconcilelist]
             version_default = ['sde.DEFAULT']
+
+            print("children: {}\nQA: {}\ndefault: {}".format(versions_children, version_QA, version_default))
 
             if len(versions_children) > 0:
                 arcpy.ReconcileVersions_management(file,
@@ -96,20 +98,22 @@ def main():
                                                    "FAVOR_TARGET_VERSION",
                                                    "POST",
                                                    "KEEP_VERSION",
-                                                   r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(file,version_QA[0]))
+                                                   r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(file,
+                                                                                                             version_QA[
+                                                                                                                 0]))
 
-                with open(r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(user_name,file,version_QA[0]),'r') as in_file:
+                with open(r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(file, version_QA[0]),
+                          'r') as in_file:
                     line = in_file.readline()
                     while line:
-                        match = re.search(text_match,line)
+                        match = re.search(text_match, line)
                         if match:
                             reconcile_errors = True
                             temp_report.write("\n{}\n".format(file))
                             temp_report.write("\t{}\n".format(line))
                         line = in_file.readline()
             else:
-                print ('not reconciling {}, len of versions_children was 0'.format(file))
-
+                print('not reconciling {}, len of versions_children was 0'.format(file))
 
             if reconcile_errors == False and (len(version_QA) > 0):
                 arcpy.ReconcileVersions_management(file,
@@ -122,9 +126,11 @@ def main():
                                                    "FAVOR_TARGET_VERSION",
                                                    "POST",
                                                    "KEEP_VERSION",
-                                                   r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(file,version_default[0]))
+                                                   r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(file,
+                                                                                                             version_default[
+                                                                                                                 0]))
 
-                with open(r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(file,version_default[0]),
+                with open(r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(file, version_default[0]),
                           'r') as in_file:
                     line = in_file.readline()
                     while line:
@@ -134,23 +140,29 @@ def main():
                             temp_report.write("\t{}\n".format(line))
                         line = in_file.readline()
             else:
-                print ('did not reconcile bc errors or no QA')
+                print('did not reconcile bc errors or no QA')
                 temp_report.write(file + " \ndid not reconcile either because of errors (listed above)"
                                          " or No QA version found\n\n")
 
         final_report = temp_report.getvalue()
+        print("printing final_report: \n", final_report)
 
         if len(final_report) > 0:
+            print("final_report has lenght, emailing")
             today = datetime.datetime.now().strftime("%m-%d-%Y")
             with open(r"C:\Jobs\reconcile_post\reconcile_logs\report_{}.txt".format(today), "w") as outfile:
                 outfile.write(final_report)
-
-            sendMail('Reconcile Post report', "JSSawyer@wpb.org", "Reconcile Post report", final_report)
+            sendMail("Reconcile Post report", ["JSSawyer@wpb.org,JJudge@wpb.org"], "Reconcile Post report",
+                     final_report)
+        else:
+            print("final report no length, ending")
 
     except Exception as E:
         log = traceback.format_exc()
-        sendMail('Reconcile script failure report ', 'JSSawyer@wpb.org','An error occurred, here is'
-                'the log; ',log)
+        print('Exception: {}'.format(log))
+        sendMail("Reconcile script failure report", ["JSSawyer@wpb.org,JJudge@wpb.org"],
+                 "An error occurred, here is the log; ", log)
+
 
     finally:
         temp_report.close()
@@ -161,18 +173,18 @@ def main():
 def set_workspace():
     user_name = getpass.getuser()
     folder_path = r"C:\Users\{}\AppData\Roaming\ESRI\Desktop10.4\ArcCatalog\\".format(user_name)
-    return folder_path,user_name
+    return folder_path, user_name
+
 
 def sendMail(subject_param, sendto_param, body_text_param, report_param):
-
     today = datetime.datetime.now().strftime("%m-%d-%Y")
-    subject = "{} {}".format(subject_param,today)
+    subject = "{} {}".format(subject_param, today)
     sender = 'scriptmonitorwpb@gmail.com'
     sender_pw = 'Bibby1997'
     server = 'smtp.gmail.com'
     body_text = "From: {0}\r\nTo: {1}\r\nSubject: {2}\r\n" \
-                "\n{3}\n\t{4}"\
-                .format(sender, sendto_param, subject, body_text_param, report_param)
+                "\n{3}\n\t{4}" \
+        .format(sender, sendto_param, subject, body_text_param, report_param)
 
     gmail = smtplib.SMTP(server, 587)
     gmail.starttls()
