@@ -122,7 +122,7 @@ def main():
                                                    "FAVOR_TARGET_VERSION",
                                                    "POST",
                                                    "KEEP_VERSION",
-                                                   r"CC:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(file,version_default[0]))
+                                                   r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(file,version_default[0]))
 
                 with open(r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(file,version_default[0]),
                           'r') as in_file:
