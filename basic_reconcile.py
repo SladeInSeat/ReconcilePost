@@ -10,7 +10,7 @@ import traceback
 
 #   Regular expression match used on logs from reconcile/post tool from ESRI, match == failure to reconcile
 text_match = r'\[(\d+/\d+/\d+.+)]\s(Warning.+)\s([SDE]+\.\w+)\.'
-
+temp_report = StringIO.StringIO()
 
 def main():
     try:
@@ -68,7 +68,7 @@ def main():
                                 'GISADMIN.Watershed_QA',
                                 'sde.DEFAULT']
         conn_files = [file for file in arcpy.ListFiles("SDE@*") if file in db_exclude]
-        temp_report = StringIO.StringIO()
+
 
         for file in conn_files:
             # arcpy.AcceptConnections(file, False)
