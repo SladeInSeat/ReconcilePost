@@ -15,7 +15,8 @@ text_match = r'\[(\d+/\d+/\d+.+)]\s(Warning.+)\s([SDE]+\.\w+)\.'
 def main():
     try:
         arcpy.env.overwriteOutput = True
-        arcpy.env.workspace,user_name = set_workspace()
+        user_name = "GIS_Admin"
+        arcpy.env.workspace = r"C:\Users\{}\AppData\Roaming\ESRI\Desktop10.4\ArcCatalog\\".format(user_name)
         db_exclude = ['SDE@WebAppDev_CLUSTER.sde']
         version_exclude = ['"CITYHALL\\CDGLASS".cglass',    #   Expliciit list of versions to not reconclie
                            '"CITYHALL\\MORIO".addr_101618',
@@ -70,8 +71,8 @@ def main():
         temp_report = StringIO.StringIO()
 
         for file in conn_files:
-            arcpy.AcceptConnections(file, False)
-            arcpy.DisconnectUser(file,"ALL")
+            # arcpy.AcceptConnections(file, False)
+            # arcpy.DisconnectUser(file,"ALL")
 
 
             db_string = r"Database Connections\{}".format(file)
@@ -81,7 +82,7 @@ def main():
                                  and version.name in static_reconcilelist]
             version_QA = [version.name.encode('ascii') for version in arcpy.da.ListVersions(db_string)
                           if version.parentVersionName == 'sde.DEFAULT'
-                          and version.name[-3:]=='_QA']
+                          and version.name[-3:]=='_QA' and version.name in static_reconcilelist]
             version_default = ['sde.DEFAULT']
 
             if len(versions_children) > 0:
@@ -95,9 +96,9 @@ def main():
                                                    "FAVOR_TARGET_VERSION",
                                                    "POST",
                                                    "KEEP_VERSION",
-                                                   r"C:\Users\{}\Desktop\reconcile_folder\{}_{}.txt".format(user_name,file,version_QA[0]))
+                                                   r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(user_name,file,version_QA[0]))
 
-                with open(r"C:\Users\{}\Desktop\reconcile_folder\{}_{}.txt".format(user_name,file,version_QA[0]),'r') as in_file:
+                with open(r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(user_name,file,version_QA[0]),'r') as in_file:
                     line = in_file.readline()
                     while line:
                         match = re.search(text_match,line)
@@ -121,9 +122,9 @@ def main():
                                                    "FAVOR_TARGET_VERSION",
                                                    "POST",
                                                    "KEEP_VERSION",
-                                                   r"C:\Users\{}\Desktop\reconcile_folder\{}_{}.txt".format(user_name,file,version_default[0]))
+                                                   r"CC:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(user_name,file,version_default[0]))
 
-                with open(r"C:\Users\{}\Desktop\reconcile_folder\{}_{}.txt".format(user_name,file,version_default[0]),
+                with open(r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(user_name,file,version_default[0]),
                           'r') as in_file:
                     line = in_file.readline()
                     while line:
@@ -140,14 +141,15 @@ def main():
         final_report = temp_report.getvalue()
 
         if len(final_report) > 0:
-            with open(r"C:\Users\{}\Desktop\finalfolder\finalfolderlog.txt".format(user_name), "w") as outfile:
+            today = datetime.datetime.now().strftime("%m-%d-%Y")
+            with open(r"C:\Jobs\reconcile_post\reconcile_logs\report_{}.txt".format(today), "w") as outfile:
                 outfile.write(final_report)
 
             sendMail('Reconcile Post report', "JSSawyer@wpb.org", "Reconcile Post report", final_report)
 
     except Exception as E:
         log = traceback.format_exc()
-        sendMail('Reconcile script failure report ', 'JSSawyer@wpb.org','An error occured, here is'
+        sendMail('Reconcile script failure report ', 'JSSawyer@wpb.org','An error occurred, here is'
                 'the log; ',log)
 
     finally:
