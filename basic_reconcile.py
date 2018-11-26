@@ -18,7 +18,7 @@ def main():
         user_name = "GIS_Admin"
         arcpy.env.workspace = r"C:\Users\{}\AppData\Roaming\ESRI\Desktop10.4\ArcCatalog\\".format(user_name)
         db_exclude = ['SDE@Address_CLUSTER.sde', 'SDE@WebAppDev_CLUSTER.sde']
-        version_exclude = ['"CITYHALL\\CDGLASS".cglass',  # Expliciit list of versions to not reconclie
+        version_exclude = ['"CITYHALL\\CDGLASS".cglass',  # Explicit list of versions to not reconcile
                            '"CITYHALL\\MORIO".addr_101618',
                            '"CITYHALL\\MORIO".BLDG_101618',
                            '"CITYHALL\\MORIO".DAZ',
@@ -127,8 +127,7 @@ def main():
                                                    "POST",
                                                    "KEEP_VERSION",
                                                    r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(file,
-                                                                                                             version_default[
-                                                                                                                 0]))
+                                                                                                version_default[0]))
 
                 with open(r"C:\Jobs\reconcile_post\reconcile_logs\{}_{}.txt".format(file, version_default[0]),
                           'r') as in_file:
@@ -148,7 +147,7 @@ def main():
         print("printing final_report: \n", final_report)
 
         if len(final_report) > 0:
-            print("final_report has lenght, emailing")
+            print("final_report has length, emailing")
             today = datetime.datetime.now().strftime("%m-%d-%Y")
             with open(r"C:\Jobs\reconcile_post\reconcile_logs\report_{}.txt".format(today), "w") as outfile:
                 outfile.write(final_report)
