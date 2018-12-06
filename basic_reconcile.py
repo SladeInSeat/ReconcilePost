@@ -17,7 +17,7 @@ def main():
         arcpy.env.overwriteOutput = True
         user_name = "GIS_Admin"
         arcpy.env.workspace = r"C:\Users\{}\AppData\Roaming\ESRI\Desktop10.4\ArcCatalog\\".format(user_name)
-        db_exclude = ['SDE@Address_CLUSTER.sde', 'SDE@WebAppDev_CLUSTER.sde']
+        db_exclude = ['SDE@WebAppDev_CLUSTER.sde']
         version_exclude = ['"CITYHALL\\CDGLASS".cglass',  # Explicit list of versions to not reconcile
                            '"CITYHALL\\MORIO".addr_101618',
                            '"CITYHALL\\MORIO".BLDG_101618',
