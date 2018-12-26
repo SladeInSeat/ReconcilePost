@@ -8,7 +8,7 @@ import datetime
 import traceback
 
 #   Regular expression match used on logs from reconcile/post tool from ESRI, match == failure to reconcile
-text_match = r'\[(\d+/\d+/\d+.+)]\s(Warning.+)\s([SDE]+\.\w+)\.'
+text_match = r'\[(\d+/\d+/\d+.+)]\s(Warning.+)(.*\s*)*'
 temp_report = StringIO.StringIO()
 
 
