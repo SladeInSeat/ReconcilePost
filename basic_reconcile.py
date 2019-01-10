@@ -143,6 +143,8 @@ def main():
                 temp_report.write(file + " \ndid not reconcile either because of errors (listed above)"
                                          " or No QA version found\n\n")
 
+            arcpy.AcceptConnections(file, True)
+
         final_report = temp_report.getvalue()
         print("printing final_report: \n", final_report)
 
@@ -155,6 +157,8 @@ def main():
                      final_report)
         else:
             print("final report no length, ending")
+
+
 
     except Exception as E:
         log = traceback.format_exc()
@@ -181,7 +185,7 @@ def sendMail(subject_param, sendto_param, body_text_param, report_param):
     sender = 'scriptmonitorwpb@gmail.com'
     sender_pw = 'Bibby1997'
     server = 'smtp.gmail.com'
-    body_text = "From: {0}\r\nTo: {1}\r\nSubject: {2}\r\n" \
+    body_text = "From: {0}\nTo: {1}\nSubject: {2}\n" \
                 "\n{3}\n\t{4}" \
         .format(sender, sendto_param, subject, body_text_param, report_param)
 
